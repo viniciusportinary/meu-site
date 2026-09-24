@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Rotinas com Calendário Completo e Feriados</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --border-color: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+            --success-bg: #ecfdf5;
+            --warning: #f59e0b;
+            --holiday: #fee2e2;
+            --holiday-text: #dc2626;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #818cf8;
+            --primary-hover: #6366f1;
+            --border-color: #334155;
+            --success-bg: #064e3b;
+            --holiday: #7f1d1d;
+            --holiday-text: #fca5a5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            transition: background 0.3s, color 0.3s, border 0.3s;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 950px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            background: var(--card-bg);
+            padding: 20px 25px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .header-title p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .actions-top {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--border-color);
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1.1fr 1.3fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Formulário */
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select {
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 0.95rem;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Calendário Completo Interativo */
+        .calendar-widget {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .calendar-nav button {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .calendar-nav h3 {
+            font-size: 1rem;
+            color: var(--primary);
+            text-transform: capitalize;
+            margin: 0;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            text-align: center;
+        }
+
+        .calendar-day-name {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            padding-bottom: 5px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            background: var(--bg-color);
+            font-size: 0.85rem;
+            cursor: pointer;
+            position: relative;
+            border: 1px solid transparent;
+        }
+
+        .calendar-day:hover {
+            border-color: var(--primary);
+        }
+
+        .calendar-day.today {
+            border-color: var(--primary);
+            font-weight: bold;
+        }
+
+        .calendar-day.holiday {
+            background-color: var(--holiday);
+            color: var(--holiday-text);
+            font-weight: bold;
+        }
+
+        .calendar-day.has-task::after {
+            content: '';
+            position: absolute;
+            bottom: 3px;
+            width: 4px;
+            height: 4px;
+            background-color: var(--warning);
+            border-radius: 50%;
+        }
+
+        .calendar-legend {
+            display: flex;
+            gap: 15px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 15px;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        /* Lista de Tarefas */
+        .full-width-card {
+            grid-column: 1 / -1;
+        }
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .task-item {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-left: 6px solid var(--primary);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .task-item.completed {
+            border-left-color: var(--success);
+            background-color: var(--success-bg);
+            opacity: 0.75;
+        }
+
+        .task-item.completed .task-title {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .task-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .task-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .task-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            background: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-check {
+            background-color: var(--success);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+
+        .btn-delete {
+            background-color: transparent;
+            color: var(--danger);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+
+        .btn-delete:hover {
+            background-color: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 30px 0;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <div class="header-title">
+                <h1>Painel de Rotinas & Calendário</h1>
+                <p>Controle completo com feriados nacionais e alertas (10d, 2d, 24h)</p>
+            </div>
+            <div class="actions-top">
+                <button class="btn-secondary" id="btnNotif" onclick="solicitarPermissaoNotificacao()">🔔 Ativar Alertas</button>
+                <button class="btn-secondary" onclick="alternarTema()">🌙 Tema</button>
+            </div>
+        </header>
+
+        <div class="grid-layout">
+            <!-- Formulário de Nova Tarefa -->
+            <div class="card">
+                <h2>✨ Nova Tarefa / Rotina</h2>
+                <form id="taskForm" onsubmit="adicionarTarefa(event)">
+                    <div class="form-group">
+                        <label for="titulo">Título</label>
+                        <input type="text" id="titulo" required placeholder="Ex: Pagar conta, Reunião...">
+                    </div>
+                    <div class="form-group">
+                        <label for="categoria">Categoria</label>
+                        <select id="categoria">
+                            <option value="Trabalho">💼 Trabalho</option>
+                            <option value="Pessoal">👤 Pessoal</option>
+                            <option value="Estudo">📚 Estudo</option>
+                            <option value="Saúde">❤️ Saúde</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dataLimite">Vencimento (Data e Hora)</label>
+                        <input type="datetime-local" id="dataLimite" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="margin-top: 5px;">Adicionar Tarefa</button>
+                </form>
+            </div>
+
+            <!-- Calendário Interativo de Todos os Anos com Feriados -->
+            <div class="card calendar-widget">
+                <h2>📅 Calendário e Feriados</h2>
+                <div class="calendar-nav">
+                    <button class="btn-secondary" onclick="mudarMes(-1)">◀ Mês</button>
+                    <h3 id="mesAnoHeader"></h3>
+                    <button class="btn-secondary" onclick="mudarMes(1)">Mês ▶</button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid">
+                    <!-- Gerado dinamicamente via JS -->
+                </div>
+                <div class="calendar-legend">
+                    <div class="legend-item"><div class="legend-color" style="background: var(--holiday);"></div> Feriado</div>
+                    <div class="legend-item"><div class="legend-color" style="background: var(--warning);"></div> Tarefa</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Tarefas -->
+        <div class="card full-width-card">
+            <h2>📋 Suas Tarefas e Rotinas</h2>
+            <div id="taskList" class="task-list">
+                <!-- As tarefas aparecem aqui -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tarefas = JSON.parse(localStorage.getItem('tarefas')) || [];
+        
+        // Data atual para navegação do calendário
+        let dataAtualCalendario = new Date();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderizarTarefas();
+            renderizarCalendario();
+            verificarNotificacoesPermissao();
+            setInterval(verificarPrazosNotificacoes, 60000);
+        });
+
+        function salvarNoStorage() {
+            localStorage.setItem('tarefas', JSON.stringify(tarefas));
+        }
+
+        // --- SISTEMA DE FERIADOS NACIONAIS DO BRASIL FIXOS E MÓVEIS ---
+        function obterFeriadosNacionais(ano) {
+            // Retorna um objeto com chave 'YYYY-MM-DD' e o nome do feriado
+            let feriados = {
+                [`${ano}-01-01`]: "Confraternização Universal",
+                [`${ano}-04-21`]: "Tiradentes",
+                [`${ano}-05-01`]: "Dia do Trabalho",
+                [`${ano}-09-07`]: "Independência do Brasil",
+                [`${ano}-10-12`]: "Nossa Sra. Aparecida",
+                [`${ano}-11-02`]: "Finados",
+                [`${ano}-11-15`]: "Proclamação da República",
+                [`${ano}-11-20`]: "Consciência Negra",
+                [`${ano}-12-25`]: "Natal"
+            };
+
+            // Cálculo da Páscoa (Algoritmo de Meeus/Jones/Butcher) para feriados móveis
+            const a = ano % 19;
+            const b = Math.floor(ano / 100);
+            const c = ano % 100;
+            const d = Math.floor(b / 4);
+            const e = b % 4;
+            const f = Math.floor((b + 8) / 25);
+            const g = Math.floor((b - f + 1) / 3);
+            const h = (19 * a + b - d - g + 15) % 30;
+            const i = Math.floor(c / 4);
+            const k = c % 4;
+            const l = (32 + 2 * e + 2 * i - h - k) % 7;
+            const m = Math.floor((a + 11 * h + 22 * l) / 451);
+            const mesPascoa = Math.floor((h + l - 7 * m + 114) / 31);
+            const diaPascoa = ((h + l - 7 * m + 114) % 31) + 1;
+
+            let dataPascoa = new Date(ano, mesPascoa - 1, diaPascoa);
+
+            // Sexta-feira Santa (-2 dias da Páscoa)
+            let sextaSanta = new Date(dataPascoa);
+            sextaSanta.setDate(dataPascoa.getDate() - 2);
+            feriados[formatarDataIso(sextaSanta)] = "Sexta-feira Santa";
+
+            // Carnaval (-47 dias da Páscoa)
+            let carnaval = new Date(dataPascoa);
+            carnaval.setDate(dataPascoa.getDate() - 47);
+            feriados[formatarDataIso(carnaval)] = "Carnaval";
+
+            // Corpus Christi (+60 dias da Páscoa)
+            let corpusChristi = new Date(dataPascoa);
+            corpusChristi.setDate(dataPascoa.getDate() + 60);
+            feriados[formatarDataIso(corpusChristi)] = "Corpus Christi";
+
+            return feriados;
+        }
+
+        function formatarDataIso(data) {
+            let ano = data.getFullYear();
+            let mes = String(data.getMonth() + 1).padStart(2, '0');
+            let dia = String(data.getDate()).padStart(2, '0');
+            return `${ano}-${mes}-${dia}`;
+        }
+
+        // --- CALENDÁRIO INTERATIVO ---
+        function mudarMes(direcao) {
+            dataAtualCalendario.setMonth(dataAtualCalendario.getMonth() + direcao);
+            renderizarCalendario();
+        }
+
+        function renderizarCalendario() {
+            const ano = dataAtualCalendario.getFullYear();
+            const mes = dataAtualCalendario.getMonth();
+
+            const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            document.getElementById('mesAnoHeader').innerText = `${nomesMeses[mes]} de ${ano}`;
+
+            const primeiroDiaIndex = new Date(ano, mes, 1).getDay();
+            const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+            const feriadosAno = obterFeriadosNacionais(ano);
+
+            const hoje = new Date();
+            const hojeIso = formatarDataIso(hoje);
+
+            const gridEl = document.getElementById('calendarGrid');
+            const diasSemana = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+            
+            let html = diasSemana.map(d => `<div class="calendar-day-name">${d}</div>`).join('');
+
+            for (let i = 0; i < primeiroDiaIndex; i++) {
+                html += `<div></div>`;
+            }
+
+            for (let dia = 1; dia <= ultimoDia; dia++) {
+                let mesStr = String(mes + 1).padStart(2, '0');
+                let diaStr = String(dia).padStart(2, '0');
+                let dataIso = `${ano}-${mesStr}-${diaStr}`;
+
+                let classes = ['calendar-day'];
+                if (dataIso === hojeIso) classes.push('today');
+
+                let tooltip = "";
+                if (feriadosAno[dataIso]) {
+                    classes.push('holiday');
+                    tooltip = `title="Feriado: ${feriadosAno[dataIso]}"`;
+                }
+
+                // Verificar se tem tarefa neste dia
+                let temTarefa = tarefas.some(t => t.dataLimite && t.dataLimite.startsWith(dataIso));
+                if (temTarefa) {
+                    classes.push('has-task');
+                }
+
+                html += `<div class="${classes.join(' ')}" ${tooltip} onclick="selecionarData('${dataIso}')">${dia}</div>`;
+            }
+
+            gridEl.innerHTML = html;
+        }
+
+        function selecionarData(dataIso) {
+            // Ao clicar no dia do calendário, já preenche o campo de data e hora limite com o dia às 09:00
+            document.getElementById('dataLimite').value = `${dataIso}T09:00`;
+            alert(`Data ${dataIso.split('-').reverse().join('/')} selecionada! Preencha o título e clique em Adicionar Tarefa.`);
+        }
+
+        // --- GERENCIAMENTO DE TAREFAS ---
+        function adicionarTarefa(e) {
+            e.preventDefault();
+            const titulo = document.getElementById('titulo').value;
+            const categoria = document.getElementById('categoria').value;
+            const dataLimite = document.getElementById('dataLimite').value;
+
+            const novaTarefa = {
+                id: Date.now(),
+                titulo,
+                categoria,
+                dataLimite,
+                concluida: false,
+                notif10dEnv: false,
+                notif2dEnv: false,
+                notif24hEnv: false
+            };
+
+            tarefas.push(novaTarefa);
+            salvarNoStorage();
+            renderizarTarefas();
+            renderizarCalendario();
+            document.getElementById('taskForm').reset();
+        }
+
+        function alternarConcluida(id) {
+            tarefas = tarefas.map(t => t.id === id ? { ...t, concluida: !t.concluida } : t);
+            salvarNoStorage();
+            renderizarTarefas();
+        }
+
+        function excluirTarefa(id) {
+            tarefas = tarefas.filter(t => t.id !== id);
+            salvarNoStorage();
+            renderizarTarefas();
+            renderizarCalendario();
+        }
+
+        function renderizarTarefas() {
+            const listEl = document.getElementById('taskList');
+            if (tarefas.length === 0) {
+                listEl.innerHTML = '<div class="empty-state">Nenhuma tarefa cadastrada no momento. Clique em um dia do calendário ou adicione acima! 🎉</div>';
+                return;
+            }
+
+            const tarefasOrdenadas = [...tarefas].sort((a, b) => {
+                if (a.concluida === b.concluida) {
+                    return new Date(a.dataLimite) - new Date(b.dataLimite);
+                }
+                return a.concluida ? 1 : -1;
+            });
+
+            listEl.innerHTML = tarefasOrdenadas.map(t => {
+                const dataFormatada = new Date(t.dataLimite).toLocaleString('pt-BR', {
+                    dateStyle: 'short',
+                    timeStyle: 'short'
+                });
+                return `
+                    <div class="task-item ${t.concluida ? 'completed' : ''}">
+                        <div class="task-info">
+                            <span class="task-title">${t.titulo}</span>
+                            <div class="task-meta">
+                                <span>📅 ${dataFormatada}</span>
+                                <span class="badge">${t.categoria}</span>
+                            </div>
+                        </div>
+                        <div class="task-actions">
+                            <button class="btn-check" onclick="alternarConcluida(${t.id})">
+                                ${t.concluida ? '↩️ Desfazer' : '✔️ Feito'}
+                            </button>
+                            <button class="btn-delete" onclick="excluirTarefa(${t.id})">🗑️ Excluir</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- NOTIFICAÇÕES (10 dias, 2 dias, 24 horas) ---
+        function solicitarPermissaoNotificacao() {
+            if (!("Notification" in window)) {
+                alert("Seu navegador não suporta notificações.");
+                return;
+            }
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    alert("Notificações ativadas com sucesso!");
+                    document.getElementById('btnNotif').style.display = 'none';
+                } else {
+                    alert("Permissão para notificações negada.");
+                }
+            });
+        }
+
+        function verificarNotificacoesPermissao() {
+            if (Notification.permission === "granted") {
+                document.getElementById('btnNotif').style.display = 'none';
+            }
+        }
+
+        function dispararNotificacao(titulo, mensagem) {
+            if (Notification.permission === "granted") {
+                new Notification(titulo, {
+                    body: mensagem,
+                    icon: "https://cdn-icons-png.flaticon.com/512/906/906334.png"
+                });
+            }
+        }
+
+        function verificarPrazosNotificacoes() {
+            const agora = new Date().getTime();
+
+            tarefas.forEach(t => {
+                if (t.concluida) return;
+
+                const tempoLimite = new Date(t.dataLimite).getTime();
+                const diferencaMs = tempoLimite - agora;
+                const diferencaHoras = diferencaMs / (1000 * 60 * 60);
+                const diferencaDias = diferencaHoras / 24;
+
+                if (diferencaDias <= 10 && diferencaDias > 8.5 && !t.notif10dEnv) {
+                    dispararNotificacao("Faltam 10 dias!", `A tarefa "${t.titulo}" vence em breve.`);
+                    t.notif10dEnv = true;
+                    salvarNoStorage();
+                }
+
+                if (diferencaDias <= 2 && diferencaDias > 1.5 && !t.notif2dEnv) {
+                    dispararNotificacao("Faltam 2 dias!", `A tarefa "${t.titulo}" está chegando ao prazo.`);
+                    t.notif2dEnv = true;
+                    salvarNoStorage();
+                }
+
+                if (diferencaHoras <= 24 && diferencaHoras > 23 && !t.notif24hEv) {
+                    dispararNotificacao("⚠️ Menos de 24 horas!", `A tarefa "${t.titulo}" vence amanhã!`);
+                    t.notif24hEnv = true;
+                    salvarNoStorage();
+                }
+            });
+        }
+
+        function alternarTema() {
+            document.body.classList.toggle('dark');
+        }
+    </script>
+</body>
+</html>
